@@ -5,6 +5,7 @@ services:
     ports:
       - "80:80"
       - "8090:8080"
+      - "8091:80"
     command:
       # Enable Docker in Traefik, so that it reads labels from Docker services
       - --providers.docker
@@ -28,6 +29,22 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-traefik-public-http.rule=Host(`${DOMAIN?Variable not set}`)
       - traefik.http.services.${STACK_NAME?Variable not set}-traefik-public.loadbalancer.server.port=80
 
+  db:
+    image: postgres:12
+    volumes:
+      - ../rpp-cache/app-db-data:/var/lib/postgresql/data/pgdata
+      #- ./docker/pgsql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.${STACK_NAME?Variable not set}.app-db-data == true
+  
   pgadmin:
     ports:
       - "5050:5050"
@@ -74,9 +91,12 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend-react
       args:
         FRONTEND_ENV: dev
+    volumes:
+      - ../rpp-cache/frontend/npm:/root/.npm #CI Cache
+      - ./frontend-react:/app
     labels:
       - traefik.enable=true
       - traefik.constraint-label-stack=${TRAEFIK_TAG?Variable not set}
