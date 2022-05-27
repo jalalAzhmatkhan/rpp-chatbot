@@ -3,7 +3,7 @@ services:
 
   proxy:
     ports:
-      - "80:80"
+      - "81:80"
       - "8090:8080"
       - "8091:80"
     command:
